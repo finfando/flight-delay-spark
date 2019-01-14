@@ -1,0 +1,12 @@
+Accumulators are variables that are only
+added to through an associative and
+commutative operation.
+They can be used to implement
+counters (as in MapReduce) or sums.
+spark natively supports accumulators of
+numeric types, and programmers can
+add support for new types.
+if accumulators are created with a
+name, they will be displayed in Spark’s
+UI. This can be useful for understanding
+the progress of running stages.
