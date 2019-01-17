@@ -15,6 +15,7 @@ object App {
         SparkSession.builder()
           .appName("DataFrame-Basic")
           .master("local[4]")
+          .config("spark.hadoop.validateOutputSpecs","false")
           .getOrCreate()
 
       // Load the data
@@ -25,8 +26,22 @@ object App {
         .load("file:///"+inputPath)
 
       // Data preprocessing
-      val flightsDF = data.filter("ArrDelay > 0")
+      println("Count before preprocessing")
+      println(data.count())
+      val flightsDF = data.filter("Cancelled = 0 and Diverted = 0")
         .drop("ArrTime","ActualElapsedTime","AirTime","TaxiIn","Diverted","CarrierDelay","WeatherDelay","NASDelay","SecurityDelay","LateAircraftDelay")
+        .drop("Cancelled","Diverted","CancellationCode","TailNum","FlightNum")
+      println("Count after preprocessing")
+      println(flightsDF.count())
+      // filter the null values of arrdelay if there are any
+      // new variable: hour (from DepTime)
+      // new variable: NightFlight [1,0] (from hour)
+
+      //Transformations
+
+      //Models - MLlib
+
+      //Models validation
 
       println("*** toString() just gives you the schema")
       println(flightsDF.toString())
@@ -43,7 +58,7 @@ object App {
       flightsDF.createOrReplaceTempView("flights")
 
 //      val sqlDF = spark.sql("SELECT * FROM people")
-//      data.repartition(1).saveAsTextFile(s"file://${outputPath}")
+//      flightsDF.repartition(1).saveAsTextFile(s"file://${outputPath}")
     }
   }
 }
