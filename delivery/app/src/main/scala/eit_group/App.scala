@@ -16,34 +16,37 @@ object App {
       val sc = new SparkContext(conf)
 
       // data is an RDD
-      val data = sc.textFile(s"file:///${inputPath}")
-      println(data.first())
-      println(data.count())
+//      val data = sc.textFile(s"file:///${inputPath}")
+//      println(data.first())
+//      println(data.count())
 
       // let's convert to dataframe
       val spark =
         SparkSession.builder()
           .appName("DataFrame-Basic")
-          .master("local[4]")
+//          .master("local[4]")
           .getOrCreate()
       import spark.implicits._
-      val flightsDF = data.toDF()
+//      val flightsDF = data.toDF)
+
+      val flightsDF = spark.read.format("csv").option("header", "true").load(s"file:///${inputPath}")
+
 
       println("*** toString() just gives you the schema")
 
       println(flightsDF.toString())
-//
-//      println("*** It's better to use printSchema()")
-//
-//      flightsDF.printSchema()
-//
-//      println("*** show() gives you neatly formatted data")
-//
-//      flightsDF.show()
 
-//      println("*** use select() to choose one column")
-//
-//      flightsDF.select("id").show()
+      println("*** It's better to use printSchema()")
+
+      flightsDF.printSchema()
+
+      println("*** show() gives you neatly formatted data")
+
+      flightsDF.show()
+
+      println("*** use select() to choose one column")
+
+      flightsDF.select("ArrDelay").show()
 
 //      println("*** use select() for multiple columns")
 //
