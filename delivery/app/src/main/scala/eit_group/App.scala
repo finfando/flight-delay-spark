@@ -29,7 +29,7 @@ object App {
       import spark.implicits._
 //      val flightsDF = data.toDF)
 
-      val flightsDF = spark.read.format("csv").option("header", "true").load(s"file:///${inputPath}")
+      val flightsDF = spark.read.format("csv").option("header", "true").load("file:///"+inputPath)
 
 
       println("*** toString() just gives you the schema")
