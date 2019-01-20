@@ -29,22 +29,23 @@ object App {
 //        .option("nullValue","null")
 //        .option("nanValue",1)
         .load("file:///"+inputPath)
-        .limit(1000)
+        .limit(100)
 
       // Data preprocessing
       println("Count before preprocessing")
       println(data.count())
 
-      val hourCoder: (String => String) = (arg: String) => {if (arg.length ==2 ) "0" else if (arg.length ==3) arg.substring(0,1) else arg.substring(0,2)}
+      val hourCoder: (String => Int) = (arg: String) => {if (arg.length ==2 ) 0 else if (arg.length ==3) arg.substring(0,1).toInt else arg.substring(0,2).toInt}
       val sqlfuncHour = udf(hourCoder)
-
-      // new variable: NightFlight [1,0] (from hour)
+      val nightCoder: (Int => Int) = (arg: Int) => {if (arg <= 4 | arg >= 23) 1 else 0}
+      val sqlfuncNight = udf(nightCoder)
       val flightsDF = data
         .filter("Cancelled = 0")
         .filter("Diverted = 0")
         .drop("ArrTime","ActualElapsedTime","AirTime","TaxiIn","Diverted","CarrierDelay","WeatherDelay","NASDelay","SecurityDelay","LateAircraftDelay")
         .drop("Cancelled","Diverted","CancellationCode","TailNum","FlightNum","Year","DayOfMonth")
-//        .withColumn("Hour", sqlfuncHour(col("CRSDepTime")))
+        .withColumn("Hour", sqlfuncHour(col("CRSDepTime")))
+        .withColumn("NightFlight", sqlfuncNight(col("Hour")))
         .withColumn("DepDelay", col("DepDelay").cast("Double"))
         .withColumn("ArrDelay", col("ArrDelay").cast("Double"))
 
@@ -65,10 +66,8 @@ object App {
       val test = split(1)
 
       val assembler = new VectorAssembler()
-        .setInputCols(Array("DepDelay"))
+        .setInputCols(Array("DepDelay", "NightFlight"))
         .setOutputCol("features")
-//      val output = assembler.transform(flightsDF.select("DepDelay","ArrDelay"))
-//      output.show(truncate=false)
 
       val lr = new LinearRegression()
         .setFeaturesCol("features")
@@ -79,7 +78,7 @@ object App {
       val pipeline = new Pipeline()
         .setStages(Array(assembler, lr))
 
-      val lrModel = pipeline.fit(training.select("DepDelay","ArrDelay"))
+      val lrModel = pipeline.fit(training.select("DepDelay","NightFlight", "ArrDelay"))
       println(s"Coefficients: ${lrModel.stages(1).asInstanceOf[LinearRegressionModel].coefficients}")
       println(s"Intercept: ${lrModel.stages(1).asInstanceOf[LinearRegressionModel].intercept}")
       val trainingSummary = lrModel.stages(1).asInstanceOf[LinearRegressionModel].summary
