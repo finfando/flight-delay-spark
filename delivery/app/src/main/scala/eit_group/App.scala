@@ -21,6 +21,7 @@ object App {
           .appName("DataFrame-Basic")
           .master("local[4]")
           .config("spark.hadoop.validateOutputSpecs","false")
+          //.config("spark.debug.maxToStringFields","false")
           .getOrCreate()
 
       // Load the data
@@ -51,12 +52,28 @@ object App {
         .withColumn("Distance", col("Distance").cast("Double"))
         .withColumn("TaxiOut", col("TaxiOut").cast("Double"))
         .withColumn("ArrDelay", col("ArrDelay").cast("Double"))
+        //.filter("ArrDelay<170 AND ArrDelay>-30")
+
+     val quantiles = preprocessedflightsDF.stat.approxQuantile("ArrDelay",
+        Array(0.01,0.99),0.0)
+      val Q1 = quantiles(0)
+      val Q3 = quantiles(1)
+      val IQR = Q3 - Q1
+      println(s"Q1 = ${Q1},Q3 =${Q3} ")
+     // val lowerRange = Q1 - 1.5*IQR
+      //val upperRange = Q3+ 1.5*IQR
+
+     // val outliers = preprocessedflightsDF.filter(s"ArrDelay > $lowerRange or ArrDelay < $upperRange")
+    //  outliers.show()
+
 
       println("Count after preprocessing")
       println(preprocessedflightsDF.count())
-      println("Count after preprocessing and removal of null values")
-      val flightsDF = preprocessedflightsDF.na.drop()
-      println(flightsDF.na.drop().count())
+
+
+      println("Count after preprocessing and removal of null values and filtering")
+      val flightsDF = preprocessedflightsDF.na.drop().filter(s"ArrDelay<${Q3} AND ArrDelay>${Q1}")
+      println(flightsDF.count())
 
       flightsDF.printSchema()
       flightsDF.show()

@@ -5,6 +5,8 @@ import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoderEstimator, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
+import org.apache.spark.ml.feature.Normalizer
+import org.apache.spark.ml.linalg.Vectors
 
 object SimpleModelObject extends App {
   class SimpleModel(name: String) {
@@ -17,11 +19,18 @@ object SimpleModelObject extends App {
         .setInputCols(Array(monthIndexer.getOutputCol,dayIndexer.getOutputCol))
         .setOutputCols(Array("MonthVec", "DayOfWeekVec"))
 
-
-
       val assembler = new VectorAssembler()
-        .setInputCols(Array("MonthVec","DepDelay", "NightFlight","DayOfWeekVec","TaxiOut","Distance"))
+        .setInputCols(Array("DepDelay","TaxiOut","Distance","MonthVec","NightFlight","DayOfWeekVec"))
         .setOutputCol("features")
+
+//     val normalizer = new Normalizer()
+//        .setInputCol("ContFeatures")
+//        .setOutputCol("normFeatures")
+//        .setP(1.0)
+
+//      val assembler2 = new VectorAssembler()
+//        .setInputCols(Array("normFeatures"))
+//        .setOutputCol("features")
 
       val lr = new LinearRegression()
         .setFeaturesCol("features")
@@ -29,8 +38,10 @@ object SimpleModelObject extends App {
         .setMaxIter(10)
         .setElasticNetParam(0.8)
 
+
+
       val pipeline = new Pipeline()
-        .setStages(Array(monthIndexer,dayIndexer,encoder,assembler, lr))//,dayIndexer
+        .setStages(Array(monthIndexer,dayIndexer,encoder,assembler, lr))
 
       val lrModel = pipeline.fit(training)//.select("ArrDelay","DepDelay","MonthVec","DayOfWeekVec", "NightFlight"))
       println(s"Coefficients: ${lrModel.stages(4).asInstanceOf[LinearRegressionModel].coefficients}")
