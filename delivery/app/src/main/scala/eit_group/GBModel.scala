@@ -1,10 +1,13 @@
 package eit_group
 
 import SimpleModelObject._
+import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.ml.feature.{VectorAssembler, VectorIndexer, OneHotEncoderEstimator, StringIndexer}
-import org.apache.spark.ml.regression.{GBTRegressor, GBTRegressionModel}
+import org.apache.spark.ml.feature.{OneHotEncoderEstimator, StringIndexer, VectorAssembler, VectorIndexer}
+import org.apache.spark.ml.regression.{GBTRegressionModel, GBTRegressor}
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder, CrossValidatorModel}
+
 
 object GBModelObject extends App {
   class GBModel(name: String) extends SimpleModel(name) {
@@ -31,11 +34,27 @@ object GBModelObject extends App {
       val gbt = new GBTRegressor()
         .setLabelCol("ArrDelay")
         .setFeaturesCol("indexFeatures")
-        .setMaxIter(10)
+//        .setMaxIter(100)
+        .setSubsamplingRate(0.8)
+        .setLossType("squared")
+
+      val evaluator = new RegressionEvaluator()
+        .setMetricName("rmse")
+        .setLabelCol("ArrDelay")
+        .setPredictionCol("prediction")
+      val paramGrid = new ParamGridBuilder()
+        .addGrid(gbt.maxDepth, Array(2,5,7))
+        .addGrid(gbt.maxIter, Array(10,20,30))
+        .build()
+      val cv = new CrossValidator()
+        .setEstimator(gbt)
+        .setEvaluator(evaluator)
+        .setEstimatorParamMaps(paramGrid)
+        .setNumFolds(3)  // Use 3+ in practice
 
       // Chain indexer and GBT in a Pipeline.
       val pipeline = new Pipeline()
-        .setStages(Array(monthIndexer, dayIndexer, encoder, assembler,featureIndexer, gbt))
+        .setStages(Array(monthIndexer, dayIndexer, encoder, assembler,featureIndexer, cv))
 
       // Train model. This also runs the indexer.
       val model = pipeline.fit(training)
