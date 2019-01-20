@@ -48,7 +48,10 @@ object App {
         .withColumn("Hour", sqlfuncHour(col("CRSDepTime")))
         .withColumn("NightFlight", sqlfuncNight(col("Hour")))
         .withColumn("DepDelay", col("DepDelay").cast("Double"))
+        .withColumn("Distance", col("Distance").cast("Double"))
+        .withColumn("TaxiOut", col("TaxiOut").cast("Double"))
         .withColumn("ArrDelay", col("ArrDelay").cast("Double"))
+
       println("Count after preprocessing")
       println(preprocessedflightsDF.count())
       println("Count after preprocessing and removal of null values")
@@ -62,18 +65,24 @@ object App {
       val training = split(0)
       val test = split(1)
 
-      val linearModel = new SimpleModel("Linear")
-      linearModel.evaluate(test, linearModel.train(training))
+//      val linearModel = new SimpleModel("Linear")
+//      val linearModelRMSE = linearModel.evaluate(test, linearModel.train(training))
 
       val gbModel = new GBModel("GB")
-      gbModel.evaluate(test, gbModel.train(training))
+      val gbModelRMSE = gbModel.evaluate(test, gbModel.train(training))
 
-      val forestModel = new ForestModel("Forest")
-      forestModel.evaluate(test, forestModel.train(training))
+//      val forestModel = new ForestModel("Forest")
+//      val forestModelRMSE = forestModel.evaluate(test, forestModel.train(training))
+
+//      println(linearModelRMSE)
+      println(gbModelRMSE)
+//      println(forestModelRMSE)
+
+
+//      flightsDF.repartition(1).saveAsTextFile(s"file://${outputPath}")
 
 //      flightsDF.createOrReplaceTempView("flights")
 //      val sqlDF = spark.sql("SELECT * FROM people")
-//      flightsDF.repartition(1).saveAsTextFile(s"file://${outputPath}")
     }
   }
 }
