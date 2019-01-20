@@ -7,7 +7,6 @@ import GBModelObject._
 import ForestModelObject._
 
 
-
 object App {
   def main(args : Array[String]) {
     Logger.getLogger("org").setLevel(Level.WARN)
@@ -27,10 +26,11 @@ object App {
       // Load the data
       val data = spark.read.format("csv")
         .option("header", "true")
-//        .option("nullValue","null")
-//        .option("nanValue",1)
+        .option("nullValue","NA")
+        .option("nanValue","NA")
         .load("file:///"+inputPath)
 //        .limit(1000)
+//      data.filter(col("LateAircraftDelay").isNull).show()
 
       // Data preprocessing
       println("Count before preprocessing")
@@ -40,7 +40,7 @@ object App {
       val sqlfuncHour = udf(hourCoder)
       val nightCoder: (Int => Int) = (arg: Int) => {if (arg <= 4 | arg >= 23) 1 else 0}
       val sqlfuncNight = udf(nightCoder)
-      val flightsDF = data
+      val preprocessedflightsDF = data
         .filter("Cancelled = 0")
         .filter("Diverted = 0")
         .drop("ArrTime","ActualElapsedTime","AirTime","TaxiIn","Diverted","CarrierDelay","WeatherDelay","NASDelay","SecurityDelay","LateAircraftDelay")
@@ -50,10 +50,12 @@ object App {
         .withColumn("DepDelay", col("DepDelay").cast("Double"))
         .withColumn("ArrDelay", col("ArrDelay").cast("Double"))
       println("Count after preprocessing")
-      println(flightsDF.count())
-      println("*** It's better to use printSchema()")
+      println(preprocessedflightsDF.count())
+      println("Count after preprocessing and removal of null values")
+      val flightsDF = preprocessedflightsDF.na.drop()
+      println(flightsDF.na.drop().count())
+
       flightsDF.printSchema()
-      println("*** show() gives you neatly formatted data")
       flightsDF.show()
 
       val split = flightsDF.randomSplit(Array(0.7,0.3))
