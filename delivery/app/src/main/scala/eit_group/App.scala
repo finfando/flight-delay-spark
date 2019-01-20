@@ -36,7 +36,7 @@ object App {
       println("Count before preprocessing")
       println(data.count())
 
-      val hourCoder: (String => Int) = (arg: String) => {if (arg.length ==2 ) 0 else if (arg.length ==3) arg.substring(0,1).toInt else arg.substring(0,2).toInt}
+      val hourCoder: (String => Int) = (arg: String) => {if (arg.length ==1 | arg.length ==2) 0 else if (arg.length ==3) arg.substring(0,1).toInt else arg.substring(0,2).toInt}
       val sqlfuncHour = udf(hourCoder)
       val nightCoder: (Int => Int) = (arg: Int) => {if (arg <= 4 | arg >= 23) 1 else 0}
       val sqlfuncNight = udf(nightCoder)
