@@ -65,17 +65,17 @@ object App {
       val training = split(0)
       val test = split(1)
 
-//      val linearModel = new SimpleModel("Linear")
-//      val linearModelRMSE = linearModel.evaluate(test, linearModel.train(training))
+     val linearModel = new SimpleModel("Linear")
+     val linearModelRMSE = linearModel.evaluate(test, linearModel.train(training))
 
-      val gbModel = new GBModel("GB")
-      val gbModelRMSE = gbModel.evaluate(test, gbModel.train(training))
+    //  val gbModel = new GBModel("GB")
+    //  val gbModelRMSE = gbModel.evaluate(test, gbModel.train(training))
 
 //      val forestModel = new ForestModel("Forest")
 //      val forestModelRMSE = forestModel.evaluate(test, forestModel.train(training))
 
-//      println(linearModelRMSE)
-      println(gbModelRMSE)
+      println(linearModelRMSE)
+     // println(gbModelRMSE)
 //      println(forestModelRMSE)
 
 

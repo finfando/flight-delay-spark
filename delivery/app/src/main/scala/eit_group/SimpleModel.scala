@@ -3,14 +3,24 @@ package eit_group
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.evaluation.RegressionEvaluator
-import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.feature.{OneHotEncoderEstimator, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
 
 object SimpleModelObject extends App {
   class SimpleModel(name: String) {
     def train(training: DataFrame): PipelineModel = {
+
+      val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("MonthIndex")
+      val dayIndexer = new StringIndexer().setInputCol("DayOfWeek").setOutputCol("DayOfWeekIndex")
+
+      val encoder = new OneHotEncoderEstimator()
+        .setInputCols(Array(monthIndexer.getOutputCol,dayIndexer.getOutputCol))
+        .setOutputCols(Array("MonthVec", "DayOfWeekVec"))
+
+
+
       val assembler = new VectorAssembler()
-        .setInputCols(Array("DepDelay", "NightFlight"))
+        .setInputCols(Array("MonthVec","DepDelay", "NightFlight","DayOfWeekVec","TaxiOut","Distance"))
         .setOutputCol("features")
 
       val lr = new LinearRegression()
@@ -20,12 +30,12 @@ object SimpleModelObject extends App {
         .setElasticNetParam(0.8)
 
       val pipeline = new Pipeline()
-        .setStages(Array(assembler, lr))
+        .setStages(Array(monthIndexer,dayIndexer,encoder,assembler, lr))//,dayIndexer
 
-      val lrModel = pipeline.fit(training.select("DepDelay", "NightFlight", "ArrDelay"))
-      println(s"Coefficients: ${lrModel.stages(1).asInstanceOf[LinearRegressionModel].coefficients}")
-      println(s"Intercept: ${lrModel.stages(1).asInstanceOf[LinearRegressionModel].intercept}")
-      val trainingSummary = lrModel.stages(1).asInstanceOf[LinearRegressionModel].summary
+      val lrModel = pipeline.fit(training)//.select("ArrDelay","DepDelay","MonthVec","DayOfWeekVec", "NightFlight"))
+      println(s"Coefficients: ${lrModel.stages(4).asInstanceOf[LinearRegressionModel].coefficients}")
+      println(s"Intercept: ${lrModel.stages(4).asInstanceOf[LinearRegressionModel].intercept}")
+      val trainingSummary = lrModel.stages(4).asInstanceOf[LinearRegressionModel].summary
       println(s"numIterations: ${trainingSummary.totalIterations}")
       println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
 //      trainingSummary.residuals.show()
