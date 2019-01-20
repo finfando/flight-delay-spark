@@ -2,10 +2,11 @@ package eit_group
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
-import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
-import org.apache.spark.ml.evaluation.RegressionEvaluator
-import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.Pipeline
+import SimpleModelObject._
+import GBModelObject._
+import ForestModelObject._
+
+
 
 object App {
   def main(args : Array[String]) {
@@ -29,7 +30,7 @@ object App {
 //        .option("nullValue","null")
 //        .option("nanValue",1)
         .load("file:///"+inputPath)
-        .limit(100)
+//        .limit(1000)
 
       // Data preprocessing
       println("Count before preprocessing")
@@ -48,70 +49,25 @@ object App {
         .withColumn("NightFlight", sqlfuncNight(col("Hour")))
         .withColumn("DepDelay", col("DepDelay").cast("Double"))
         .withColumn("ArrDelay", col("ArrDelay").cast("Double"))
-
       println("Count after preprocessing")
       println(flightsDF.count())
-
-      println("*** toString() just gives you the schema")
-      println(flightsDF.toString())
       println("*** It's better to use printSchema()")
       flightsDF.printSchema()
       println("*** show() gives you neatly formatted data")
       flightsDF.show()
-      println("*** use select() to choose one column")
-      flightsDF.select("ArrDelay").show()
 
       val split = flightsDF.randomSplit(Array(0.7,0.3))
       val training = split(0)
       val test = split(1)
 
-      val assembler = new VectorAssembler()
-        .setInputCols(Array("DepDelay", "NightFlight"))
-        .setOutputCol("features")
+      val linearModel = new SimpleModel("Linear")
+      linearModel.evaluate(test, linearModel.train(training))
 
-      val lr = new LinearRegression()
-        .setFeaturesCol("features")
-        .setLabelCol("ArrDelay")
-        .setMaxIter(10)
-        .setElasticNetParam(0.8)
+      val gbModel = new GBModel("Forest")
+      gbModel.evaluate(test, gbModel.train(training))
 
-      val pipeline = new Pipeline()
-        .setStages(Array(assembler, lr))
-
-      val lrModel = pipeline.fit(training.select("DepDelay","NightFlight", "ArrDelay"))
-      println(s"Coefficients: ${lrModel.stages(1).asInstanceOf[LinearRegressionModel].coefficients}")
-      println(s"Intercept: ${lrModel.stages(1).asInstanceOf[LinearRegressionModel].intercept}")
-      val trainingSummary = lrModel.stages(1).asInstanceOf[LinearRegressionModel].summary
-      println(s"numIterations: ${trainingSummary.totalIterations}")
-      println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
-      trainingSummary.residuals.show()
-      println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
-      println(s"r2: ${trainingSummary.r2}")
-
-      val predictions = lrModel.transform(test)
-      predictions.show(truncate=false)
-
-      val evaluator = new RegressionEvaluator()
-        .setMetricName("rmse")
-        .setLabelCol("ArrDelay")
-        .setPredictionCol("prediction")
-      val rmse = evaluator.evaluate(predictions)
-
-      println(s"Root-mean-square error = $rmse")
-//      val testSummary = lrModelTest.summary
-//      testSummary.residuals.show()
-//      println(s"MAE: ${testSummary.meanAbsoluteError}")
-//      println(s"RMSE: ${testSummary.rootMeanSquaredError}")
-//      println(s"r2: ${testSummary.r2}")
-
-//      println(s"numIterations: ${trainingSummary.totalIterations}")
-//      println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
-//      trainingSummary.residuals.show()
-//      println(s"MAE: ${trainingSummary.meanAbsoluteError}")
-//      println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
-//      println(s"r2: ${trainingSummary.r2}")
-
-      //Models validation
+      val forestModel = new ForestModel("Forest")
+      forestModel.evaluate(test, forestModel.train(training))
 
 //      flightsDF.createOrReplaceTempView("flights")
 //      val sqlDF = spark.sql("SELECT * FROM people")
