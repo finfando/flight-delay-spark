@@ -1,6 +1,7 @@
 package eit_group
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions._
 
 object App {
   def main(args : Array[String]) {
@@ -28,18 +29,23 @@ object App {
       // Data preprocessing
       println("Count before preprocessing")
       println(data.count())
-      val flightsDF = data.filter("Cancelled = 0 and Diverted = 0")
+
+      val hourCoder: (String => String) = (arg: String) => {if (arg.length ==2 ) "0" else if (arg.length ==3) arg.substring(0,1) else arg.substring(0,2)}
+      val sqlfuncHour = udf(hourCoder)
+      val flightsDF = data
+        .filter("Cancelled = 0")
+        .filter("Diverted = 0")
         .drop("ArrTime","ActualElapsedTime","AirTime","TaxiIn","Diverted","CarrierDelay","WeatherDelay","NASDelay","SecurityDelay","LateAircraftDelay")
-        .drop("Cancelled","Diverted","CancellationCode","TailNum","FlightNum")
+        .drop("Cancelled","Diverted","CancellationCode","TailNum","FlightNum","Year","DayOfMonth")
+        .withColumn("Hour", sqlfuncHour(col("CRSDepTime")))
       println("Count after preprocessing")
       println(flightsDF.count())
-      // filter the null values of arrdelay if there are any
-      // new variable: hour (from DepTime)
       // new variable: NightFlight [1,0] (from hour)
 
       //Transformations
 
       //Models - MLlib
+
 
       //Models validation
 
