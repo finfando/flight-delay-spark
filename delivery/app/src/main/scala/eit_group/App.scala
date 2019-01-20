@@ -63,7 +63,7 @@ object App {
       val linearModel = new SimpleModel("Linear")
       linearModel.evaluate(test, linearModel.train(training))
 
-      val gbModel = new GBModel("Forest")
+      val gbModel = new GBModel("GB")
       gbModel.evaluate(test, gbModel.train(training))
 
       val forestModel = new ForestModel("Forest")
