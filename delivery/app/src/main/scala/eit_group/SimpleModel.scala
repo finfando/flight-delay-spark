@@ -7,6 +7,7 @@ import org.apache.spark.ml.feature.{OneHotEncoderEstimator, StringIndexer, Vecto
 import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
 import org.apache.spark.ml.feature.Normalizer
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.ml.feature.StringIndexer
 
 object SimpleModelObject extends App {
   class SimpleModel(name: String) {
@@ -14,13 +15,14 @@ object SimpleModelObject extends App {
 
       val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("MonthIndex")
       val dayIndexer = new StringIndexer().setInputCol("DayOfWeek").setOutputCol("DayOfWeekIndex")
+      val companyIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol("UniqueCarrierIndex")
 
       val encoder = new OneHotEncoderEstimator()
-        .setInputCols(Array(monthIndexer.getOutputCol,dayIndexer.getOutputCol))
-        .setOutputCols(Array("MonthVec", "DayOfWeekVec"))
+        .setInputCols(Array(monthIndexer.getOutputCol,dayIndexer.getOutputCol,companyIndexer.getOutputCol))
+        .setOutputCols(Array("MonthVec", "DayOfWeekVec","CompanyVec"))
 
       val assembler = new VectorAssembler()
-        .setInputCols(Array("DepDelay","TaxiOut","Distance","MonthVec","NightFlight","DayOfWeekVec"))
+        .setInputCols(Array("DepDelay","TaxiOut","Distance","MonthVec","NightFlight","CompanyVec"))
         .setOutputCol("features")
 
 //     val normalizer = new Normalizer()
@@ -35,18 +37,18 @@ object SimpleModelObject extends App {
       val lr = new LinearRegression()
         .setFeaturesCol("features")
         .setLabelCol("ArrDelay")
-        .setMaxIter(10)
-        .setElasticNetParam(0.8)
+        .setMaxIter(30)
+        .setElasticNetParam(0.5)
 
 
 
       val pipeline = new Pipeline()
-        .setStages(Array(monthIndexer,dayIndexer,encoder,assembler, lr))
+        .setStages(Array(monthIndexer,dayIndexer,companyIndexer,encoder,assembler, lr))
 
       val lrModel = pipeline.fit(training)//.select("ArrDelay","DepDelay","MonthVec","DayOfWeekVec", "NightFlight"))
-      println(s"Coefficients: ${lrModel.stages(4).asInstanceOf[LinearRegressionModel].coefficients}")
-      println(s"Intercept: ${lrModel.stages(4).asInstanceOf[LinearRegressionModel].intercept}")
-      val trainingSummary = lrModel.stages(4).asInstanceOf[LinearRegressionModel].summary
+      println(s"Coefficients: ${lrModel.stages(5).asInstanceOf[LinearRegressionModel].coefficients}")
+      println(s"Intercept: ${lrModel.stages(5).asInstanceOf[LinearRegressionModel].intercept}")
+      val trainingSummary = lrModel.stages(5).asInstanceOf[LinearRegressionModel].summary
       println(s"numIterations: ${trainingSummary.totalIterations}")
       println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
 //      trainingSummary.residuals.show()

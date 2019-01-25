@@ -15,13 +15,14 @@ object GBModelObject extends App {
 
       val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("MonthIndex")
       val dayIndexer = new StringIndexer().setInputCol("DayOfWeek").setOutputCol("DayOfWeekIndex")
+      val companyIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol("UniqueCarrierIndex")
 
       val encoder = new OneHotEncoderEstimator()
-        .setInputCols(Array(monthIndexer.getOutputCol, dayIndexer.getOutputCol))
-        .setOutputCols(Array("MonthVec", "DayOfWeekVec"))
+        .setInputCols(Array(monthIndexer.getOutputCol, dayIndexer.getOutputCol,companyIndexer.getOutputCol))
+        .setOutputCols(Array("MonthVec", "DayOfWeekVec","CompanyVec"))
 
       val assembler = new VectorAssembler()
-        .setInputCols(Array("MonthVec","DayOfWeekVec","DepDelay","Distance","TaxiOut","Hour","NightFlight"))
+        .setInputCols(Array("MonthVec","DayOfWeekVec","DepDelay","Distance","TaxiOut","Hour","NightFlight","CompanyVec"))
         .setOutputCol("features")
 //      val output = assembler.transform(training)
 //      output.show(truncate=false)
@@ -54,7 +55,7 @@ object GBModelObject extends App {
 
       // Chain indexer and GBT in a Pipeline.
       val pipeline = new Pipeline()
-        .setStages(Array(monthIndexer, dayIndexer, encoder, assembler,featureIndexer, cv))
+        .setStages(Array(monthIndexer, dayIndexer,companyIndexer, encoder, assembler,featureIndexer, cv))
 
       // Train model. This also runs the indexer.
       val model = pipeline.fit(training)
