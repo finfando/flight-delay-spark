@@ -3,9 +3,6 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 import SimpleModelObject._
-import GBModelObject._
-import ForestModelObject._
-
 
 object App {
   def main(args : Array[String]) {
@@ -42,7 +39,7 @@ object App {
         .filter("Cancelled = 0")
         .filter("Diverted = 0")
         .drop("ArrTime","ActualElapsedTime","AirTime","TaxiIn","Diverted","CarrierDelay","WeatherDelay","NASDelay","SecurityDelay","LateAircraftDelay")
-        .drop("Cancelled","Diverted","CancellationCode","TailNum","FlightNum","Year","DayOfMonth")
+        .drop("Cancelled","Diverted","CancellationCode","TailNum","FlightNum","Year","DayOfMonth", "Origin", "Dest", "CRSElapsedTime", "CRSArrTime")
         .withColumn("Hour", sqlfuncHour(col("CRSDepTime")))
         .withColumn("NightFlight", sqlfuncNight(col("Hour")))
         .withColumn("DepDelay", col("DepDelay").cast("Double"))
@@ -76,7 +73,7 @@ object App {
         .select("ArrDelay","prediction")
         .withColumn("ArrDelay", col("ArrDelay").cast("Integer"))
         .withColumn("prediction", col("prediction").cast("Integer"))
-        .write.csv(s"file:///$outputPath")
+        .write.option("header", "true").csv(s"file:///$outputPath")
 
       // other models
 //      val gbModel = new GBModel("GB")

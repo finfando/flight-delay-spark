@@ -11,30 +11,29 @@ object SimpleModelObject extends App {
   class SimpleModel(name: String) {
     def train(training: DataFrame): PipelineModel = {
       val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("MonthIndex")
-      val dayIndexer = new StringIndexer().setInputCol("DayOfWeek").setOutputCol("DayOfWeekIndex")
       val companyIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol("UniqueCarrierIndex")
 
       val encoder = new OneHotEncoderEstimator()
-        .setInputCols(Array(monthIndexer.getOutputCol,dayIndexer.getOutputCol,companyIndexer.getOutputCol))
-        .setOutputCols(Array("MonthVec", "DayOfWeekVec","CompanyVec"))
+        .setInputCols(Array(monthIndexer.getOutputCol,companyIndexer.getOutputCol))
+        .setOutputCols(Array("MonthVec","CompanyVec"))
 
       val assembler = new VectorAssembler()
-        .setInputCols(Array("DepDelay","TaxiOut","Distance","MonthVec","NightFlight","CompanyVec"))
+        .setInputCols(Array("DepDelay","TaxiOut","MonthVec","CompanyVec", "NightFlight"))
         .setOutputCol("features")
 
       val lr = new LinearRegression()
         .setFeaturesCol("features")
         .setLabelCol("ArrDelay")
-        .setMaxIter(30)
+        .setMaxIter(10)
         .setElasticNetParam(0.5)
 
       val pipeline = new Pipeline()
-        .setStages(Array(monthIndexer,dayIndexer,companyIndexer,encoder,assembler, lr))
+        .setStages(Array(monthIndexer,companyIndexer,encoder,assembler, lr))
 
       val lrModel = pipeline.fit(training)
-      println(s"Coefficients: ${lrModel.stages(5).asInstanceOf[LinearRegressionModel].coefficients}")
-      println(s"Intercept: ${lrModel.stages(5).asInstanceOf[LinearRegressionModel].intercept}")
-      val trainingSummary = lrModel.stages(5).asInstanceOf[LinearRegressionModel].summary
+      println(s"Coefficients: ${lrModel.stages(4).asInstanceOf[LinearRegressionModel].coefficients}")
+      println(s"Intercept: ${lrModel.stages(4).asInstanceOf[LinearRegressionModel].intercept}")
+      val trainingSummary = lrModel.stages(4).asInstanceOf[LinearRegressionModel].summary
       println(s"numIterations: ${trainingSummary.totalIterations}")
       println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
       println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
