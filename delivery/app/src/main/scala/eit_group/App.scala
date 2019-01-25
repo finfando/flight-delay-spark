@@ -54,7 +54,6 @@ object App {
       println("Count after preprocessing")
       println(preprocessedflightsDF.count())
 
-
       println("Count after preprocessing and removal of null values")
       val flightsDF = preprocessedflightsDF.na.drop()
       println(flightsDF.count())
@@ -62,13 +61,15 @@ object App {
       flightsDF.show()
 
       val Array(training, test) = flightsDF.randomSplit(Array(0.9, 0.1), seed = 12345)
+      println(s"Size of train set: ${training.count()}")
+      println(s"Size of test set: ${test.count()}")
 
       val quantiles = preprocessedflightsDF.stat.approxQuantile("ArrDelay", Array(0.01,0.99),0.0)
       val quantile_bottom = quantiles(0)
       val quantile_top = quantiles(1)
-      println(s"Dropping observations under ${quantile_bottom} and above ${quantile_top} in training data set")
-
       val training_filtered = training.filter(s"ArrDelay<${quantile_top} AND ArrDelay>${quantile_bottom}")
+      println(s"Dropping observations under ${quantile_bottom} and above ${quantile_top} in training data set (2% of observations)")
+      println(s"Size of train filtered set: ${training_filtered.count()}")
 
       val linearModel = new SimpleModel("Linear")
       val linearModelRMSE = linearModel.evaluate(test, linearModel.train(training_filtered))
