@@ -21,7 +21,6 @@ object App {
           .appName("DataFrame-Basic")
           .master("local[4]")
           .config("spark.hadoop.validateOutputSpecs","false")
-          //.config("spark.debug.maxToStringFields","false")
           .getOrCreate()
 
       // Load the data
@@ -31,7 +30,6 @@ object App {
         .option("nanValue","NA")
         .load("file:///"+inputPath)
 //        .limit(1000)
-//      data.filter(col("LateAircraftDelay").isNull).show()
 
       // Data preprocessing
       println("Count before preprocessing")
@@ -52,53 +50,40 @@ object App {
         .withColumn("Distance", col("Distance").cast("Double"))
         .withColumn("TaxiOut", col("TaxiOut").cast("Double"))
         .withColumn("ArrDelay", col("ArrDelay").cast("Double"))
-        //.filter("ArrDelay<170 AND ArrDelay>-30")
-
-     val quantiles = preprocessedflightsDF.stat.approxQuantile("ArrDelay",
-        Array(0.01,0.99),0.0)
-      val Q1 = quantiles(0)
-      val Q3 = quantiles(1)
-      val IQR = Q3 - Q1
-      println(s"Q1 = ${Q1},Q3 =${Q3} ")
-     // val lowerRange = Q1 - 1.5*IQR
-      //val upperRange = Q3+ 1.5*IQR
-
-     // val outliers = preprocessedflightsDF.filter(s"ArrDelay > $lowerRange or ArrDelay < $upperRange")
-    //  outliers.show()
-
 
       println("Count after preprocessing")
       println(preprocessedflightsDF.count())
 
 
-      println("Count after preprocessing and removal of null values and filtering")
-      val flightsDF = preprocessedflightsDF.na.drop().filter(s"ArrDelay<${Q3} AND ArrDelay>${Q1}")
+      println("Count after preprocessing and removal of null values")
+      val flightsDF = preprocessedflightsDF.na.drop()
       println(flightsDF.count())
-
       flightsDF.printSchema()
       flightsDF.show()
 
       val Array(training, test) = flightsDF.randomSplit(Array(0.9, 0.1), seed = 12345)
 
+      val quantiles = preprocessedflightsDF.stat.approxQuantile("ArrDelay", Array(0.01,0.99),0.0)
+      val quantile_bottom = quantiles(0)
+      val quantile_top = quantiles(1)
+      println(s"Dropping observations under ${quantile_bottom} and above ${quantile_top} in training data set")
 
-     val linearModel = new SimpleModel("Linear")
-     val linearModelRMSE = linearModel.evaluate(test, linearModel.train(training))
+      val training_filtered = training.filter(s"ArrDelay<${quantile_top} AND ArrDelay>${quantile_bottom}")
 
-    // val gbModel = new GBModel("GB")
-     //  val gbModelRMSE = gbModel.evaluate(test, gbModel.train(training))
+      val linearModel = new SimpleModel("Linear")
+      val linearModelRMSE = linearModel.evaluate(test, linearModel.train(training_filtered))
+      println(linearModelRMSE)
+
+      // other models
+//      val gbModel = new GBModel("GB")
+//      val gbModelRMSE = gbModel.evaluate(test, gbModel.train(training))
+//      println(gbModelRMSE)
 
 //      val forestModel = new ForestModel("Forest")
 //      val forestModelRMSE = forestModel.evaluate(test, forestModel.train(training))
-
-      println(linearModelRMSE)
-     // println(gbModelRMSE)
 //      println(forestModelRMSE)
 
-
 //      flightsDF.repartition(1).saveAsTextFile(s"file://${outputPath}")
-
-//      flightsDF.createOrReplaceTempView("flights")
-//      val sqlDF = spark.sql("SELECT * FROM people")
     }
   }
 }
