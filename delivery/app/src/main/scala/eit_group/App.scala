@@ -29,15 +29,14 @@ object App {
         .option("nullValue","NA")
         .option("nanValue","NA")
         .load("file:///"+inputPath)
-//        .limit(1000)
 
       // Data preprocessing
       println("Count before preprocessing")
       println(data.count())
 
-      val hourCoder: (String => Int) = (arg: String) => {if (arg.length ==1 | arg.length ==2) 0 else if (arg.length ==3) arg.substring(0,1).toInt else arg.substring(0,2).toInt}
+      val hourCoder: String => Int = (arg: String) => {if (arg.length ==1 | arg.length ==2) 0 else if (arg.length ==3) arg.substring(0,1).toInt else arg.substring(0,2).toInt}
       val sqlfuncHour = udf(hourCoder)
-      val nightCoder: (Int => Int) = (arg: Int) => {if (arg <= 4 | arg >= 23) 1 else 0}
+      val nightCoder: Int => Int = (arg: Int) => {if (arg <= 4 | arg >= 23) 1 else 0}
       val sqlfuncNight = udf(nightCoder)
       val preprocessedflightsDF = data
         .filter("Cancelled = 0")
@@ -67,13 +66,15 @@ object App {
       val quantiles = preprocessedflightsDF.stat.approxQuantile("ArrDelay", Array(0.01,0.99),0.0)
       val quantile_bottom = quantiles(0)
       val quantile_top = quantiles(1)
-      val training_filtered = training.filter(s"ArrDelay<${quantile_top} AND ArrDelay>${quantile_bottom}")
-      println(s"Dropping observations under ${quantile_bottom} and above ${quantile_top} in training data set (2% of observations)")
+      val training_filtered = training.filter(s"ArrDelay<$quantile_top AND ArrDelay>$quantile_bottom")
+      println(s"Dropping observations with ArrDelay under $quantile_bottom and above $quantile_top in training data set (2% of most extreme observations)")
       println(s"Size of train filtered set: ${training_filtered.count()}")
 
       val linearModel = new SimpleModel("Linear")
-      val linearModelRMSE = linearModel.evaluate(test, linearModel.train(training_filtered))
-      println(linearModelRMSE)
+      val predictions = linearModel.evaluate(test, linearModel.train(training_filtered))
+      predictions.show()
+//      predictions.repartition(1).write.csv(s"file://${outputPath}")
+      predictions.write.csv(s"file:///$outputPath")
 
       // other models
 //      val gbModel = new GBModel("GB")
@@ -84,7 +85,6 @@ object App {
 //      val forestModelRMSE = forestModel.evaluate(test, forestModel.train(training))
 //      println(forestModelRMSE)
 
-//      flightsDF.repartition(1).saveAsTextFile(s"file://${outputPath}")
     }
   }
 }
