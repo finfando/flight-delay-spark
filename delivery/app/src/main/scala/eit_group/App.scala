@@ -72,19 +72,18 @@ object App {
 
       val linearModel = new SimpleModel("Linear")
       val predictions = linearModel.evaluate(test, linearModel.train(training_filtered))
-      predictions.show()
-//      predictions.repartition(1).write.csv(s"file://${outputPath}")
-      predictions.write.csv(s"file:///$outputPath")
+      predictions.repartition(1)
+        .select("ArrDelay","prediction")
+        .withColumn("ArrDelay", col("ArrDelay").cast("Integer"))
+        .withColumn("prediction", col("prediction").cast("Integer"))
+        .write.csv(s"file:///$outputPath")
 
       // other models
 //      val gbModel = new GBModel("GB")
-//      val gbModelRMSE = gbModel.evaluate(test, gbModel.train(training))
-//      println(gbModelRMSE)
+//      val gbModelPredictions = gbModel.evaluate(test, gbModel.train(training))
 
 //      val forestModel = new ForestModel("Forest")
-//      val forestModelRMSE = forestModel.evaluate(test, forestModel.train(training))
-//      println(forestModelRMSE)
-
+//      val gbModelPredictions = forestModel.evaluate(test, forestModel.train(training))
     }
   }
 }

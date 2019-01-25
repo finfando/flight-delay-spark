@@ -52,7 +52,7 @@ object SimpleModelObject extends App {
         .setPredictionCol("prediction")
       val rmse = evaluator.evaluate(predictions)
 
-      println(s"${name}: Root-mean-square error = $rmse")
+      println(s"$name: Root-mean-square error on test data set = $rmse")
       predictions
     }
   }
